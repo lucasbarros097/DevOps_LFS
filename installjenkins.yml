@@ -1,0 +1,73 @@
+---
+- name: Instalação do Jenkins
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Instalar dependências base
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg2
+          - fontconfig
+          - software-properties-common
+        state: present
+
+    - name: Adicionar chave GPG do Adoptium
+      shell: |
+        curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public | \
+        tee /usr/share/keyrings/adoptium-keyring.asc > /dev/null
+      args:
+        creates: /usr/share/keyrings/adoptium-keyring.asc
+
+    - name: Adicionar repositório do Adoptium
+      copy:
+        dest: /etc/apt/sources.list.d/adoptium.list
+        content: "deb [signed-by=/usr/share/keyrings/adoptium-keyring.asc] https://packages.adoptium.net/artifactory/deb bookworm main\n"
+        mode: '0644'
+
+    - name: Atualizar cache do APT
+      apt:
+        update_cache: yes
+
+    - name: Instalar Java 21 (Temurin)
+      apt:
+        name: temurin-21-jdk
+        state: present
+
+    - name: Remover chave antiga do Jenkins
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /usr/share/keyrings/jenkins-keyring.asc
+        - /usr/share/keyrings/jenkins-keyring.gpg
+        - /etc/apt/sources.list.d/jenkins.list
+
+    - name: Adicionar chave GPG do Jenkins (2026)
+      shell: |
+        curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key | \
+        tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+
+    - name: Adicionar repositório do Jenkins
+      copy:
+        dest: /etc/apt/sources.list.d/jenkins.list
+        content: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/\n"
+        mode: '0644'
+
+    - name: Atualizar cache de pacotes
+      apt:
+        update_cache: yes
+
+    - name: Instalar Jenkins
+      apt:
+        name: jenkins
+        state: present
+
+    - name: Iniciar e habilitar serviço do Jenkins
+      systemd:
+        name: jenkins
+        state: started
+        enabled: yes

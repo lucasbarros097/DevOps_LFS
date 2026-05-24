@@ -12,9 +12,15 @@ Vagrant.configure("2") do |config|
       al.playbook = "installdocker.yml"
       al.install_mode = "apt"
     end
+    
+    controle.vm.provision "ansible_local" do |al|
+      al.playbook = "installjenkins.yml"
+      al.install_mode = "apt"
+    end
+
     controle.vm.provider "virtualbox" do |vb|
       vb.name = "controle"
-      vb.memory = "2048"
+      vb.memory = "6048"
       vb.cpus = 2
     end
   end
