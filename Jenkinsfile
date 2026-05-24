@@ -1,5 +1,5 @@
 pipeline {
-    agent mestre
+    agent { label 'mestre' }
 
     environment {
         TAG         = "latest"
